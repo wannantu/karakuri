@@ -1,39 +1,79 @@
 #include "mbed.h"
  
-// Read temperature from LM75BD
+class encoder{
+    public:
+        encoder(PinName channelA, PinName channelB, int resolution);
+        void count_puls();
+        int counter;
+        int pulsesPerRev;
+        double getrpm();
+        void start();
+        void init();
+        double rpm;
+        int prevalue;
+        int corvalue;
 
-//SCL PB_8 SDA_PB_9
-//I2CSlave i2c(PB_9 , PB_8); 
+    private:
+    Timer Mper;
+    InterruptIn chaanleA;
+    InterruptIn chaanleB;
+};
+
+encoder::encoder(PinName channelA, PinName channelB, int resolution): chaanleA(channelA), chaanleB(channelB){
+    pulsesPerRev = resolution;
+    counter = 0;
+    chaanleA.rise(callback(this, &encoder::count_puls));
+    prevalue = 0;
+}
+
+
+
+void encoder::count_puls(){
+    int flag = chaanleB.read();
+    if(!flag){
+        counter += 1;
+    }
+    else{
+        counter -= 1;
+    }
+
+}
+
+double encoder::getrpm(){
+    Mper.stop();
+    corvalue = counter/pulsesPerRev;
+    rpm = (corvalue - prevalue)/(Mper.read()/60);
+    Mper.reset();
+    Mper.start();
+    prevalue = corvalue;  
+    return rpm;
+}
+
+void encoder::start(){
+    Mper.start();
+}
+
+
 Serial pc(USBTX,USBRX);
 InterruptIn Asou(PA_0);
-//const int addr_m = 0x48;      // 7 bit I2C address
-//const int addr_s = 1; // 8bit I2C address, 0x90
+InterruptIn Bsou(PA_1);
 
 int counter = 0;
+int flag = 0;
 
-void count(){
-    counter += 1;
-}
 int main() {
     //char cmd[2];
     //int val;
-    
+    encoder enc(PA_0,PA_1,400);
+    enc.start();
     //i2c.frequency(100000);
     //i2c.address(1);
-    Asou.rise(&count);
+    double rpm;
+    int count = 0;
     while (1) {
-      /*  val = i2c.read(cmd,2);
-        if(!val){
-            for(int i = 0; i < 2;i++){
-                pc.printf("cmd[%d] = %d",i ,cmd[i]);
-            }
-        }
-        else{
-            pc.printf("massage not receive");
-        }
-        pc.printf("\n");
-        wait_ms(500);*/
-        pc.printf("counter = %d\n",counter);
+        rpm = enc.getrpm();
+        //count = enc.counter;
+        pc.printf("counter = %f\n",rpm);
         wait_ms(500);
 
  
