@@ -2,16 +2,16 @@
  
 class encoder{
     public:
-        encoder(PinName channelA, PinName channelB, int resolution);
+        encoder(PinName channelA, PinName channelB, double resolution);
         void count_puls();
         int counter;
-        int pulsesPerRev;
+        double pulsesPerRev;
         double getrpm();
         void start();
         void init();
         double rpm;
-        int prevalue;
-        int corvalue;
+        double prevalue;
+        double corvalue;
 
     private:
     Timer Mper;
@@ -19,7 +19,7 @@ class encoder{
     InterruptIn chaanleB;
 };
 
-encoder::encoder(PinName channelA, PinName channelB, int resolution): chaanleA(channelA), chaanleB(channelB){
+encoder::encoder(PinName channelA, PinName channelB, double resolution): chaanleA(channelA), chaanleB(channelB){
     pulsesPerRev = resolution;
     counter = 0;
     chaanleA.rise(callback(this, &encoder::count_puls));
@@ -54,28 +54,22 @@ void encoder::start(){
 }
 
 
-Serial pc(USBTX,USBRX);
-InterruptIn Asou(PA_0);
-InterruptIn Bsou(PA_1);
+static UnbufferedSerial serial_port(USBTX, USBRX);
 
-int counter = 0;
-int flag = 0;
+
 
 int main() {
-    //char cmd[2];
-    //int val;
-    encoder enc(PA_0,PA_1,400);
+    int ppr = 512;
+    encoder enc(PA_0,PA_1,ppr);
     enc.start();
-    //i2c.frequency(100000);
-    //i2c.address(1);
+    char c[256];
     double rpm;
     int count = 0;
     while (1) {
         rpm = enc.getrpm();
-        //count = enc.counter;
-        pc.printf("counter = %f\n",rpm);
-        wait_ms(500);
-
+        int size = sprintf(c,"rpm = %f \n",rpm);//ここでいつもの書き方
+        serial_port.write(&c, size);
+        wait_us(500000);
  
     }
 }
